@@ -2,39 +2,12 @@
 <html>
 <head>
   <title>Painel do Bot</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    h1 { color: #2c3e50; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background-color: #f5f5f5; }
-    .ativo { color: green; font-weight: bold; }
-    .parado { color: red; font-weight: bold; }
-  </style>
 </head>
 <body>
-  <h1>Painel de Operações</h1>
-  <p>Status: <span class="{{ 'ativo' if ativo else 'parado' }}">{{ 'Ativo' if ativo else 'Parado' }}</span></p>
-  <p>Modo: <strong>{{ modo }}</strong></p>
-  <p>Moedas monitoradas: {{ moedas | join(', ') }}</p>
-  <p>Saldo disponível: <strong>USDT {{ saldo }}</strong></p>
-
-  <h2>Histórico de Operações</h2>
-  <table>
-    <tr>
-      <th>Moeda</th>
-      <th>Preço</th>
-      <th>Data</th>
-      <th>Ação</th>
-    </tr>
-    {% for op in operacoes %}
-    <tr>
-      <td>{{ op.symbol }}</td>
-      <td>{{ op.preco }}</td>
-      <td>{{ op.data }}</td>
-      <td>{{ op.acao }}</td>
-    </tr>
-    {% endfor %}
-  </table>
+  <h1>Painel Online</h1>
+  <p>Status: {{ 'Ativo' if ativo else 'Parado' }}</p>
+  <p>Modo: {{ modo }}</p>
+  <p>Moedas: {{ moedas }}</p>
+  <p>Saldo: {{ saldo }}</p>
 </body>
 </html>
