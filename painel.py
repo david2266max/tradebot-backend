@@ -76,6 +76,23 @@ async def set_modo(request: Request):
 def get_operacoes():
     return estado_bot["operacoes"]
 
+from pydantic import BaseModel
+
+class OperacaoInput(BaseModel):
+    symbol: str
+    preco: float
+    acao: str
+    data: str
+
+@app.post("/operar")
+def nova_operacao(operacao: OperacaoInput):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("INSERT INTO operacoes (symbol, preco, acao, data) VALUES (?, ?, ?, ?)",
+                 (operacao.symbol, operacao.preco, operacao.acao, operacao.data))
+    conn.commit()
+    conn.close()
+    return {"status": "registrado"}
+
 @app.get("/painel", response_class=HTMLResponse)
 def painel(request: Request):
     return templates.TemplateResponse("painel.html", {
