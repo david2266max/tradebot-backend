@@ -16,9 +16,11 @@ def notificar_telegram(msg: str):
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
         data = {"chat_id": CHAT_ID, "text": msg}
         try:
-            requests.post(url, data=data, timeout=5)
-        except:
-            pass
+            print("ENVIANDO:", msg)  # <- linha nova
+            r = requests.post(url, data=data, timeout=5)
+            print("STATUS TELEGRAM:", r.status_code, r.text)  # <- linha nova
+        except Exception as e:
+            print("Erro Telegram:", e)
 
 app.add_middleware(
     CORSMiddleware,
