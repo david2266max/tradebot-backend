@@ -9,7 +9,7 @@ app = FastAPI()
 
 # Configuração do bot Telegram
 BOT_TOKEN = "7921479727:AAH1s5TdMprUJO6VAx4C_2c9fAWN9wH3cyg"
-CHAT_ID = "930323255"
+CHAT_ID = "1069380923"
 
 def notificar_telegram(msg: str):
     if BOT_TOKEN != "COLE_SEU_TOKEN_AQUI":
