@@ -13,6 +13,41 @@
     .parado { color: red; font-weight: bold; }
   </style>
 </head>
+  <h2>Gráfico de Preços (simulado)</h2>
+<canvas id="grafico" height="100"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('grafico').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: ['Dia 1', 'Dia 2', 'Dia 3', 'Dia 4', 'Dia 5'],
+    datasets: [
+      {
+        label: 'BTCUSDT',
+        data: [62000, 61500, 61800, 62200, 62400],
+        borderWidth: 2,
+        fill: false
+      },
+      {
+        label: 'ETHUSDT',
+        data: [3200, 3150, 3175, 3220, 3250],
+        borderWidth: 2,
+        fill: false
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: false
+      }
+    }
+  }
+});
+</script>
 <body>
   <h1>Painel de Operações</h1>
   <p>Status: <span class="{{ 'ativo' if ativo else 'parado' }}">{{ 'Ativo' if ativo else 'Parado' }}</span></p>
