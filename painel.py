@@ -3,14 +3,15 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-app = FastAPI()
-templates = Jinja2Templates(directory="templates")
+from fastapi import FastAPI
 
-@app.get("/painel", response_class=HTMLResponse)
-async def painel(request: Request):
-    return templates.TemplateResponse("painel.html", {
-        "request": request,
-        "status": "Parado",
-        "saldo": 0.0,
-        "moedas": "BTCUSDT, ETHUSDT"
-    })
+app = FastAPI()
+
+@app.get("/status")
+def get_status():
+    return {
+        "ativo": False,
+        "modo": "agressivo",
+        "moedas_monitoradas": ["BTCUSDT", "ETHUSDT"],
+        "valor_disponivel": 150.0
+    }
