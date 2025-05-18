@@ -2,104 +2,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Painel do Bot</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    h1 { color: #2c3e50; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background-color: #f5f5f5; }
-    .ativo { color: green; font-weight: bold; }
-    .parado { color: red; font-weight: bold; }
-    .btn { padding: 8px 14px; margin: 4px; font-weight: bold; cursor: pointer; border: none; border-radius: 6px; }
-    .btn-start { background: #2ecc71; color: white; }
-    .btn-stop { background: #e74c3c; color: white; }
-    .btn-modo { background: #3498db; color: white; }
-  </style>
+    <title>Painel do Bot</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 20px; }
+        h1 { color: #2c3e50; }
+        .info { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+        .label { font-weight: bold; }
+    </style>
+    <script>
+        function atualizarStatus() {
+            fetch('/status')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("modoAtual").innerText = data.modo;
+                    document.getElementById("estadoAtual").innerText = data.ativo ? "Ativo" : "Parado";
+                    document.getElementById("saldoAtual").innerText = data.valor_disponivel;
+                    document.getElementById("moedas").innerText = data.moedas_monitoradas.join(", ");
+                });
+        }
+        setInterval(atualizarStatus, 5000);
+        window.onload = atualizarStatus;
+    </script>
 </head>
 <body>
-  <h1>Painel de Operações</h1>
-  <p>Status: <span class="{{ 'ativo' if ativo else 'parado' }}">{{ 'Ativo' if ativo else 'Parado' }}</span></p>
-  <p>Modo: <strong>{{ modo }}</strong></p>
-  <p>Moedas monitoradas: {{ moedas | join(', ') }}</p>
-  <p>Saldo disponível: <strong>USDT {{ saldo }}</strong></p>
-<h3>Modo atual: {{ modo }}</h3>
-  <button class="btn btn-start" onclick="acionarBot('/bot/start')">Ativar Bot</button>
-  <button class="btn btn-stop" onclick="acionarBot('/bot/stop')">Parar Bot</button>
-  <br><br>
-  <button class="btn btn-modo" onclick="definirModo('agressivo')">Modo Agressivo</button>
-  <button class="btn btn-modo" onclick="definirModo('moderado')">Modo Moderado</button>
-  <button class="btn btn-modo" onclick="definirModo('conservador')">Modo Conservador</button>
-
-  <h2>Histórico de Operações</h2>
-  <table>
-    <tr>
-      <th>Moeda</th>
-      <th>Preço</th>
-      <th>Data</th>
-      <th>Ação</th>
-    </tr>
-    {% for op in operacoes %}
-    <tr>
-      <td>{{ op.symbol }}</td>
-      <td>{{ op.preco }}</td>
-      <td>{{ op.data }}</td>
-      <td>{{ op.acao }}</td>
-    </tr>
-    {% endfor %}
-  </table>
-
-  <h2>Gráfico de Preços (simulado)</h2>
-  <canvas id="grafico" height="100"></canvas>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    const ctx = document.getElementById('grafico').getContext('2d');
-    const chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['Dia 1', 'Dia 2', 'Dia 3', 'Dia 4', 'Dia 5'],
-        datasets: [
-          {
-            label: 'BTCUSDT',
-            data: [62000, 61500, 61800, 62200, 62400],
-            borderWidth: 2,
-            fill: false,
-            borderColor: 'blue'
-          },
-          {
-            label: 'ETHUSDT',
-            data: [3200, 3150, 3175, 3220, 3250],
-            borderWidth: 2,
-            fill: false,
-            borderColor: 'green'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: false
-          }
-        }
-      }
-    });
-
-    function acionarBot(endpoint) {
-      fetch(endpoint, { method: 'POST' })
-        .then(() => alert("Comando enviado com sucesso!"))
-        .catch(() => alert("Erro ao enviar comando"));
-    }
-
-    function definirModo(modo) {
-      fetch('/modo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ perfil: modo })
-      }).then(() => alert("Modo alterado para: " + modo))
-        .catch(() => alert("Erro ao alterar modo"));
-    }
-  </script>
+    <h1>Painel Ativo com Telegram</h1>
+    <div class="info">
+        <p><span class="label">Modo atual:</span> <span id="modoAtual">{{ modo }}</span></p>
+        <p><span class="label">Estado do bot:</span> <span id="estadoAtual">{{ ativo }}</span></p>
+        <p><span class="label">Saldo disponível:</span> <span id="saldoAtual">{{ saldo }}</span></p>
+        <p><span class="label">Moedas monitoradas:</span> <span id="moedas">{{ moedas }}</span></p>
+    </div>
 </body>
 </html>
