@@ -1,13 +1,13 @@
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 import requests
+import sqlite3
+from pydantic import BaseModel
 
 app = FastAPI()
 
-# Configuração do bot Telegram
 BOT_TOKEN = "7921479727:AAH1s5TdMprUJO6VAx4C_2c9fAWN9wH3cyg"
 CHAT_ID = "1069380923"
 
@@ -16,9 +16,9 @@ def notificar_telegram(msg: str):
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
         data = {"chat_id": CHAT_ID, "text": msg}
         try:
-            print("ENVIANDO:", msg)  # <- linha nova
+            print("ENVIANDO:", msg)
             r = requests.post(url, data=data, timeout=5)
-            print("STATUS TELEGRAM:", r.status_code, r.text)  # <- linha nova
+            print("STATUS TELEGRAM:", r.status_code, r.text)
         except Exception as e:
             print("Erro Telegram:", e)
 
@@ -69,6 +69,7 @@ async def set_modo(request: Request):
     data = await request.json()
     novo_modo = data.get("modo", "agressivo")
     estado_bot["modo"] = novo_modo
+    print("⚙️ Novo modo recebido:", novo_modo)
     notificar_telegram("⚙️ Modo alterado para: {}".format(novo_modo))
     return {"modo": novo_modo}
 
@@ -76,13 +77,13 @@ async def set_modo(request: Request):
 def get_operacoes():
     return estado_bot["operacoes"]
 
-from pydantic import BaseModel
-
 class OperacaoInput(BaseModel):
     symbol: str
     preco: float
     acao: str
     data: str
+
+DB_PATH = "database.db"
 
 @app.post("/operar")
 def nova_operacao(operacao: OperacaoInput):
