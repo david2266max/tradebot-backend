@@ -23,7 +23,7 @@
   <p>Modo: <strong>{{ modo }}</strong></p>
   <p>Moedas monitoradas: {{ moedas | join(', ') }}</p>
   <p>Saldo disponível: <strong>USDT {{ saldo }}</strong></p>
-
+<h3>Modo atual: {{ modo }}</h3>
   <button class="btn btn-start" onclick="acionarBot('/bot/start')">Ativar Bot</button>
   <button class="btn btn-stop" onclick="acionarBot('/bot/stop')">Parar Bot</button>
   <br><br>
