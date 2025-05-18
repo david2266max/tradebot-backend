@@ -67,7 +67,7 @@ def stop_bot():
 @app.post("/modo")
 async def set_modo(request: Request):
     data = await request.json()
-    novo_modo = data.get("perfil", "agressivo")
+    novo_modo = data.get("modo", "agressivo")
     estado_bot["modo"] = novo_modo
     notificar_telegram("⚙️ Modo alterado para: {}".format(novo_modo))
     return {"modo": novo_modo}
