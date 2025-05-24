@@ -4,3 +4,4 @@ requests
 pydantic
 python-binance
 jinja2
+python-binance
