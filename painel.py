@@ -84,6 +84,13 @@ def iniciar_monitoramento(symbol: str = "BTCUSDT", preco_alvo_compra: float = 50
 @app.get("/binance/saldo")
 def saldo_binance():
     return consultar_saldo()
+try:
+        info = binance_client.get_account()
+        saldos = info['balances']
+        ativos = [s for s in saldos if float(s['free']) > 0]
+        return ativos
+    except Exception as e:
+        return {"erro": str(e)}
 
 @app.get("/binance/preco")
 def preco_binance(symbol: str = "BTCUSDT"):
