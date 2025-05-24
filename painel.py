@@ -65,13 +65,13 @@ def stop_bot():
     return {"status": "parado"}
 
 @app.post("/modo")
-    async def set_modo(request: Request):
+async def set_modo(request: Request):
     data = await request.json()
     print("🚨 Dados recebidos em /modo:", data)
     novo_modo = data.get("modo", "agressivo")
-    estado_bot["modo"] = novo modo
-
-
+    estado_bot["modo"] = novo_modo
+    notificar_telegram(f"⚙️ Modo alterado para: {novo_modo}")
+    return {"modo": novo_modo}
 
 @app.get("/operacoes")
 def get_operacoes():
@@ -88,19 +88,14 @@ DB_PATH = "database.db"
 @app.post("/operar")
 def nova_operacao(operacao: OperacaoInput):
     conn = sqlite3.connect(DB_PATH)
-    conn.execute("INSERT INTO operacoes (symbol, preco, acao, data) VALUES (?, ?, ?, ?)",
-                 (operacao.symbol, operacao.preco, operacao.acao, operacao.data))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("INSERT INTO operacoes (symbol, preco, acao, data) VALUES (?, ?, ?, ?)",
+                     (operacao.symbol, operacao.preco, operacao.acao, operacao.data))
+        conn.commit()
+    finally:
+        conn.close()
     return {"status": "registrado"}
 
 @app.get("/painel", response_class=HTMLResponse)
-def painel(request: Request):
-    return templates.TemplateResponse("painel.html", {
-        "request": request,
-        "ativo": estado_bot["ativo"],
-        "modo": estado_bot["modo"],
-        "moedas": estado_bot["moedas_monitoradas"],
-        "saldo": estado_bot["valor_disponivel"],
-        "operacoes": estado_bot["operacoes"]
-    })
+async def painel(request: Request):
+    return templates.TemplateResponse("painel.html", {"request": request})
