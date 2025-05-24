@@ -50,6 +50,13 @@
         setInterval(atualizarStatus, 5000);
         window.onload = atualizarStatus;
     </script>
+<link rel="manifest" href="/static/manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/service-worker.js');
+  }
+</script>
+    
 </head>
 <body>
     <h1>Painel do Bot</h1>
