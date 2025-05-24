@@ -1,5 +1,6 @@
 fastapi
 uvicorn
 requests
-sqlite3-binary
 pydantic
+python-binance
+jinja2
