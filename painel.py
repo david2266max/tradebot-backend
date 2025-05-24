@@ -6,6 +6,9 @@ import requests
 import threading
 import time
 from binance.client import Client
+from dotenv import load_dotenv
+
+import os
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -18,11 +21,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BOT_TOKEN = "7921479727:AAH1s5TdMprUJO6VAx4C_2c9fAWN9wH3cyg"
-CHAT_ID = "1069380923"
+Bload_dotenv()
 
-API_KEY = "SUA_API_KEY"
-API_SECRET = "SEU_API_SECRET"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
+API_KEY = os.getenv("BINANCE_API_KEY")
+API_SECRET = os.getenv("BINANCE_API_SECRET")
 binance_client = Client(API_KEY, API_SECRET)
 
 estado_bot = {
