@@ -12,19 +12,31 @@ import time
 from pydantic import BaseModel, validator
 
 app = FastAPI()
-
 security = HTTPBasic()
 templates = Jinja2Templates(directory="templates")
 
-# Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Credenciais
 USUARIO = "admin"
 SENHA = "dNMsSuvlJUhe2hYk"
-
 BOT_TOKEN = "7921479727:AAH1s5TdMprUJO6VAx4C_2c9fAWN9wH3cyg"
 CHAT_ID = "1069380923"
+
+PERFIS = {
+    "agressivo": {"alocacao": 0.8, "moedas": ["BTCUSDT", "ETHUSDT", "SOLUSDT"], "risco": "alto"},
+    "moderado": {"alocacao": 0.5, "moedas": ["BTCUSDT", "ETHUSDT"], "risco": "médio"},
+    "manual": {"alocacao": 0.2, "moedas": ["BTCUSDT"], "risco": "baixo"}
+}
+
+estado_bot = {"ativo": False, "modo": "agressivo", "valor_disponivel": 150.0, "operacoes": []}
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def notificar_telegram(msg: str, tentativas=3):
     if BOT_TOKEN != "COLE_SEU_TOKEN_AQUI":
@@ -41,21 +53,33 @@ def notificar_telegram(msg: str, tentativas=3):
                 logging.error(f"Erro Telegram: {e}")
                 time.sleep(1)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def ajustar_alocacao():
+    perfil = estado_bot['modo']
+    alocacao = PERFIS[perfil]['alocacao']
+    saldo = estado_bot['valor_disponivel']
+    return round(saldo * alocacao, 2)
 
-estado_bot = {
-    "ativo": False,
-    "modo": "agressivo",
-    "moedas_monitoradas": ["BTCUSDT", "ETHUSDT"],
-    "valor_disponivel": 150.0,
-    "operacoes": []
-}
+def estrategia_rsi(rsi):
+    if rsi < 30: return "COMPRA"
+    if rsi > 70: return "VENDA"
+    return "MANTER"
+
+def cruzamento_medias(movel_curta, movel_longa):
+    if movel_curta > movel_longa: return "COMPRA"
+    if movel_curta < movel_longa: return "VENDA"
+    return "MANTER"
+
+def operar_automaticamente(symbol, preco_atual, rsi, movel_curta, movel_longa):
+    decisao_rsi = estrategia_rsi(rsi)
+    decisao_media = cruzamento_medias(movel_curta, movel_longa)
+    if decisao_rsi == "MANTER" and decisao_media == "MANTER":
+        return {"status": "Nenhuma ação tomada"}
+    acao = "COMPRA" if "COMPRA" in [decisao_rsi, decisao_media] else "VENDA"
+    operacao = {"symbol": symbol, "preco": preco_atual, "data": time.strftime("%Y-%m-%d"), "acao": acao}
+    estado_bot['operacoes'].append(operacao)
+    logging.info(f"Operação automática: {operacao}")
+    notificar_telegram(f"📈 Operação automática: {operacao}")
+    return operacao
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -76,8 +100,12 @@ def get_status():
 @app.post("/bot/start")
 def start_bot():
     estado_bot["ativo"] = True
-    notificar_telegram("🔔 Bot ativado (modo: {})".format(estado_bot["modo"]))
-    return {"status": "iniciado"}
+    notificar_telegram(f"🔔 Bot ativado (modo: {estado_bot['modo']})")
+    valor_investir = ajustar_alocacao()
+    logging.info(f"Ajuste automático: investir {valor_investir}")
+    preco, rsi, movel_curta, movel_longa = 62000, 25, 60000, 61000
+    operar_automaticamente("BTCUSDT", preco, rsi, movel_curta, movel_longa)
+    return {"status": "iniciado", "alocacao": valor_investir}
 
 @app.post("/bot/stop")
 def stop_bot():
@@ -97,6 +125,13 @@ async def set_modo(request: Request):
 def get_operacoes():
     return estado_bot["operacoes"]
 
+@app.get("/operacoes/filtro")
+def filtrar_operacoes(symbol: str = None, acao: str = None):
+    ops = estado_bot["operacoes"]
+    if symbol: ops = [op for op in ops if op["symbol"] == symbol]
+    if acao: ops = [op for op in ops if op["acao"] == acao]
+    return ops
+
 class OperacaoInput(BaseModel):
     symbol: str
     preco: float
@@ -105,14 +140,12 @@ class OperacaoInput(BaseModel):
 
     @validator('symbol')
     def symbol_nao_vazio(cls, v):
-        if not v.strip():
-            raise ValueError('Symbol não pode ser vazio')
+        if not v.strip(): raise ValueError('Symbol não pode ser vazio')
         return v
 
     @validator('preco')
     def preco_positivo(cls, v):
-        if v <= 0:
-            raise ValueError('Preço deve ser positivo')
+        if v <= 0: raise ValueError('Preço deve ser positivo')
         return v
 
     @validator('data')
@@ -136,13 +169,9 @@ def nova_operacao(operacao: OperacaoInput):
     return {"status": "registrado"}
 
 def autenticar(credentials: HTTPBasicCredentials = Depends(security)):
-    if not (secrets.compare_digest(credentials.username, USUARIO) and 
-            secrets.compare_digest(credentials.password, SENHA)):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciais incorretas",
-            headers={"WWW-Authenticate": "Basic"},
-        )
+    if not (secrets.compare_digest(credentials.username, USUARIO) and secrets.compare_digest(credentials.password, SENHA)):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais incorretas",
+                            headers={"WWW-Authenticate": "Basic"})
 
 @app.get("/painel", response_class=HTMLResponse)
 async def painel(request: Request, credentials: HTTPBasicCredentials = Depends(autenticar)):
