@@ -6,6 +6,7 @@ import requests
 import threading
 import time
 from binance.client import Client
+from pydantic import BaseModel  # ✅ Importado Pydantic
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -88,11 +89,23 @@ def saldo_binance():
 def preco_binance(symbol: str = "BTCUSDT"):
     return consultar_preco(symbol)
 
+# ✅ MODELO Pydantic
+class OrdemInput(BaseModel):
+    symbol: str
+    side: str
+    quantidade: float
+
+# ✅ ALTERADA: rota para receber JSON com Pydantic
 @app.post("/binance/ordem")
-def ordem_binance(symbol: str = "BTCUSDT", side: str = "BUY", quantidade: float = 0.001):
-    ordem = criar_ordem(symbol, side, "MARKET", quantidade)
-    notificar_telegram(f"🚨 Ordem enviada: {ordem}")
-    return ordem
+def ordem_binance(ordem: OrdemInput):
+    resultado = criar_ordem(
+        symbol=ordem.symbol,
+        side=ordem.side,
+        tipo="MARKET",
+        quantidade=ordem.quantidade
+    )
+    notificar_telegram(f"🚨 Ordem enviada: {resultado}")
+    return resultado
 
 @app.get("/status")
 def get_status():
