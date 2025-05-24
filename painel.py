@@ -6,7 +6,7 @@ import requests
 import threading
 import time
 from binance.client import Client
-from pydantic import BaseModel  # ✅ Importado Pydantic
+from pydantic import BaseModel  # ✅ Importado Pydantic 
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
