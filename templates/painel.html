@@ -1,14 +1,17 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="pt">
 <head>
-    <title>Painel do Bot</title>
     <meta charset="UTF-8">
+    <title>Painel do Bot com Telegram</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 20px; }
-        h1 { color: #2c3e50; }
-        .info { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #121212; color: #f5f5f5; }
+        .info, .acoes { background: #1e1e1e; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        h1 { color: #03dac6; }
         .label { font-weight: bold; }
+        button, select { padding: 8px 12px; margin: 5px; border-radius: 4px; border: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #333; padding: 8px; text-align: center; }
+        th { background: #333; }
     </style>
     <script>
         function atualizarStatus() {
@@ -20,6 +23,33 @@
                     document.getElementById("saldoAtual").innerText = data.valor_disponivel;
                     document.getElementById("moedas").innerText = data.moedas_monitoradas.join(", ");
                 });
+            fetch('/operacoes')
+                .then(res => res.json())
+                .then(ops => {
+                    const tbody = document.getElementById("operacoesBody");
+                    tbody.innerHTML = "";
+                    ops.forEach(op => {
+                        const row = `<tr>
+                            <td>${op.symbol}</td>
+                            <td>${op.preco}</td>
+                            <td>${op.data}</td>
+                            <td>${op.acao}</td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                });
+        }
+        function alterarModo() {
+            const modo = document.getElementById("modoSelect").value;
+            fetch('/modo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modo: modo })
+            }).then(() => atualizarStatus());
+        }
+        function ativarBot(ativo) {
+            fetch(ativo ? '/bot/start' : '/bot/stop', { method: 'POST' })
+                .then(() => atualizarStatus());
         }
         setInterval(atualizarStatus, 5000);
         window.onload = atualizarStatus;
@@ -27,11 +57,41 @@
 </head>
 <body>
     <h1>Painel Ativo com Telegram</h1>
+
     <div class="info">
         <p><span class="label">Modo atual:</span> <span id="modoAtual">{{ modo }}</span></p>
         <p><span class="label">Estado do bot:</span> <span id="estadoAtual">{{ ativo }}</span></p>
         <p><span class="label">Saldo disponível:</span> <span id="saldoAtual">{{ saldo }}</span></p>
         <p><span class="label">Moedas monitoradas:</span> <span id="moedas">{{ moedas }}</span></p>
+    </div>
+
+    <div class="acoes">
+        <h2>Ações</h2>
+        <label for="modoSelect">Alterar modo:</label>
+        <select id="modoSelect">
+            <option value="agressivo">Agressivo</option>
+            <option value="moderado">Moderado</option>
+            <option value="manual">Manual</option>
+        </select>
+        <button onclick="alterarModo()">Enviar</button>
+
+        <button onclick="ativarBot(true)">Ativar Bot</button>
+        <button onclick="ativarBot(false)">Parar Bot</button>
+    </div>
+
+    <div class="info">
+        <h2>Histórico de Operações</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Moeda</th>
+                    <th>Preço</th>
+                    <th>Data</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody id="operacoesBody"></tbody>
+        </table>
     </div>
 </body>
 </html>
