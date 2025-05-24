@@ -65,13 +65,13 @@ def stop_bot():
     return {"status": "parado"}
 
 @app.post("/modo")
-async def set_modo(request: Request):
+    async def set_modo(request: Request):
     data = await request.json()
+    print("🚨 Dados recebidos em /modo:", data)
     novo_modo = data.get("modo", "agressivo")
-    estado_bot["modo"] = novo_modo
-    print("⚙️ Novo modo recebido:", novo_modo)
-    notificar_telegram("⚙️ Modo alterado para: {}".format(novo_modo))
-    return {"modo": novo_modo}
+    estado_bot["modo"] = novo modo
+
+
 
 @app.get("/operacoes")
 def get_operacoes():
