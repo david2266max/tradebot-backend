@@ -1,12 +1,21 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import secrets
 import requests
 import sqlite3
 from pydantic import BaseModel
 
 app = FastAPI()
+
+security = HTTPBasic()
+templates = Jinja2Templates(directory="templates")
+
+# Credenciais
+USUARIO = "admin"
+SENHA = "dNMsSuvlJUhe2hYk"
 
 BOT_TOKEN = "7921479727:AAH1s5TdMprUJO6VAx4C_2c9fAWN9wH3cyg"
 CHAT_ID = "1069380923"
@@ -40,8 +49,6 @@ estado_bot = {
         {"symbol": "ETHUSDT", "preco": "3200", "data": "2025-05-11", "acao": "VENDA"}
     ]
 }
-
-templates = Jinja2Templates(directory="templates")
 
 @app.get("/status")
 def get_status():
@@ -96,6 +103,16 @@ def nova_operacao(operacao: OperacaoInput):
         conn.close()
     return {"status": "registrado"}
 
+def autenticar(credentials: HTTPBasicCredentials = Depends(security)):
+    correto_usuario = secrets.compare_digest(credentials.username, USUARIO)
+    correto_senha = secrets.compare_digest(credentials.password, SENHA)
+    if not (correto_usuario and correto_senha):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciais incorretas",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
 @app.get("/painel", response_class=HTMLResponse)
-async def painel(request: Request):
+async def painel(request: Request, credentials: HTTPBasicCredentials = Depends(autenticar)):
     return templates.TemplateResponse("painel.html", {"request": request})
