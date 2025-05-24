@@ -6,7 +6,6 @@ import requests
 import threading
 import time
 from binance.client import Client
-from pydantic import BaseModel  # ✅ Importado Pydantic 
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -22,8 +21,8 @@ app.add_middleware(
 BOT_TOKEN = "7921479727:AAH1s5TdMprUJO6VAx4C_2c9fAWN9wH3cyg"
 CHAT_ID = "1069380923"
 
-API_KEY = "FOEaQgU6A1y5m3RShuy8qoddXJbVkBg9GQimhnjeYzRaHEvx9GvQTeO5bUDDS1RI"
-API_SECRET = "lOMXP5Dr7iE65grWyLAt1oNrNtlKY1qCOiAn9OhgQVD0I7lWmC0z2qHnP4ZW0HnS"
+API_KEY = "SUA_API_KEY"
+API_SECRET = "SEU_API_SECRET"
 binance_client = Client(API_KEY, API_SECRET)
 
 estado_bot = {
@@ -37,40 +36,58 @@ estado_bot = {
 def notificar_telegram(msg: str):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     data = {"chat_id": CHAT_ID, "text": msg}
-    requests.post(url, data=data, timeout=5)
+    try:
+        requests.post(url, data=data, timeout=5)
+    except Exception as e:
+        print(f"Erro ao notificar Telegram: {e}")
 
 def consultar_saldo():
-    info = binance_client.get_account()
-    saldos = info['balances']
-    ativos = [s for s in saldos if float(s['free']) > 0]
-    return ativos
+    try:
+        info = binance_client.get_account()
+        saldos = info['balances']
+        ativos = [s for s in saldos if float(s['free']) > 0]
+        return ativos
+    except Exception as e:
+        return {"erro": str(e)}
 
 def consultar_preco(symbol="BTCUSDT"):
-    ticker = binance_client.get_symbol_ticker(symbol=symbol)
-    return ticker
+    try:
+        ticker = binance_client.get_symbol_ticker(symbol=symbol)
+        return ticker
+    except Exception as e:
+        return {"erro": str(e)}
 
 def criar_ordem(symbol="BTCUSDT", side="BUY", tipo="MARKET", quantidade=0.001):
-    ordem = binance_client.create_order(
-        symbol=symbol,
-        side=side,
-        type=tipo,
-        quantity=quantidade
-    )
-    return ordem
+    try:
+        ordem = binance_client.create_order(
+            symbol=symbol,
+            side=side,
+            type=tipo,
+            quantity=quantidade
+        )
+        return ordem
+    except Exception as e:
+        return {"erro": str(e)}
 
 def monitorar_automaticamente(symbol="BTCUSDT", intervalo=60, preco_alvo_compra=50000, preco_alvo_venda=60000):
     def loop():
         while True:
-            preco = float(consultar_preco(symbol)["price"])
+            preco_info = consultar_preco(symbol)
+            if "erro" in preco_info:
+                print(f"Erro ao consultar preço: {preco_info['erro']}")
+                time.sleep(intervalo)
+                continue
+
+            preco = float(preco_info["price"])
             print(f"Preço atual de {symbol}: {preco}")
 
             if preco <= preco_alvo_compra:
-                criar_ordem(symbol, "BUY", "MARKET", 0.001)
-                notificar_telegram(f"✅ Ordem automática de COMPRA enviada para {symbol} a {preco}")
+                resultado = criar_ordem(symbol, "BUY", "MARKET", 0.001)
+                notificar_telegram(f"✅ Ordem automática de COMPRA enviada para {symbol} a {preco}: {resultado}")
 
             elif preco >= preco_alvo_venda:
-                criar_ordem(symbol, "SELL", "MARKET", 0.001)
-                notificar_telegram(f"✅ Ordem automática de VENDA enviada para {symbol} a {preco}")
+                resultado = criar_ordem(symbol, "SELL", "MARKET", 0.001)
+                notificar_telegram(f"✅ Ordem automática de VENDA enviada para {symbol} a {preco}: {resultado}")
 
             time.sleep(intervalo)
 
@@ -83,40 +100,15 @@ def iniciar_monitoramento(symbol: str = "BTCUSDT", preco_alvo_compra: float = 50
 
 @app.get("/binance/saldo")
 def saldo_binance():
-    try:
-        info = binance_client.get_account()
-        saldos = info['balances']
-        ativos = [s for s in saldos if float(s['free']) > 0]
-        return ativos
-    except Exception as e:
-        return {"erro": str(e)}
     return consultar_saldo()
 
 @app.get("/binance/preco")
 def preco_binance(symbol: str = "BTCUSDT"):
     return consultar_preco(symbol)
 
-# ✅ MODELO Pydantic
-class OrdemInput(BaseModel):
-    symbol: str
-    side: str
-    quantidade: float
-
-# ✅ ALTERADA: rota para receber JSON com Pydantic
 @app.post("/binance/ordem")
-def ordem_binance(ordem: OrdemInput):    
-    resultado = criar_ordem(
-        symbol=ordem.symbol,
-        side=ordem.side,
-        tipo="MARKET",
-        quantidade=ordem.quantidade
-    )
-    try:
-        ordem = criar_ordem(symbol, side, "MARKET", quantidade)
-        notificar_telegram(f"🚨 Ordem enviada: {ordem}")
-        return ordem
-    except Exception as e:
-        return {"erro": str(e)}
+def ordem_binance(symbol: str = "BTCUSDT", side: str = "BUY", quantidade: float = 0.001):
+    resultado = criar_ordem(symbol, side, "MARKET", quantidade)
     notificar_telegram(f"🚨 Ordem enviada: {resultado}")
     return resultado
 
