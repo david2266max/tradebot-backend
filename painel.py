@@ -3,11 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 import requests
-import sqlite3
-from binance.client import Client
 import threading
 import time
-import sqlite3
+from binance.client import Client
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -59,18 +57,6 @@ def criar_ordem(symbol="BTCUSDT", side="BUY", tipo="MARKET", quantidade=0.001):
     )
     return ordem
 
-# Simula função de consultar preço na Binance
-def consultar_preco(symbol="BTCUSDT"):
-    return {"price": "55000.00"}
-
-# Simula função de criar ordem real na Binance
-def criar_ordem(symbol, side, tipo, quantidade):
-    print(f"Ordem criada: {side} {quantidade} {symbol}")
-
-# Simula envio de notificação Telegram
-def notificar_telegram(msg):
-    print(f"Telegram: {msg}")
-
 def monitorar_automaticamente(symbol="BTCUSDT", intervalo=60, preco_alvo_compra=50000, preco_alvo_venda=60000):
     def loop():
         while True:
@@ -94,15 +80,15 @@ def iniciar_monitoramento(symbol: str = "BTCUSDT", preco_alvo_compra: float = 50
     monitorar_automaticamente(symbol, intervalo, preco_alvo_compra, preco_alvo_venda)
     return {"status": f"Monitoramento iniciado para {symbol} com intervalo de {intervalo}s"}
 
-@app.get("/saldo")
+@app.get("/binance/saldo")
 def saldo_binance():
     return consultar_saldo()
 
-@app.get("/preco")
+@app.get("/binance/preco")
 def preco_binance(symbol: str = "BTCUSDT"):
     return consultar_preco(symbol)
 
-@app.post("/ordem")
+@app.post("/binance/ordem")
 def ordem_binance(symbol: str = "BTCUSDT", side: str = "BUY", quantidade: float = 0.001):
     ordem = criar_ordem(symbol, side, "MARKET", quantidade)
     notificar_telegram(f"🚨 Ordem enviada: {ordem}")
