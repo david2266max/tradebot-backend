@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
@@ -95,15 +94,15 @@ def iniciar_monitoramento(symbol: str = "BTCUSDT", preco_alvo_compra: float = 50
     monitorar_automaticamente(symbol, intervalo, preco_alvo_compra, preco_alvo_venda)
     return {"status": f"Monitoramento iniciado para {symbol} com intervalo de {intervalo}s"}
 
-@app.get("/binance/saldo")
+@app.get("/saldo")
 def saldo_binance():
     return consultar_saldo()
 
-@app.get("/binance/preco")
+@app.get("/preco")
 def preco_binance(symbol: str = "BTCUSDT"):
     return consultar_preco(symbol)
 
-@app.post("/binance/ordem")
+@app.post("/ordem")
 def ordem_binance(symbol: str = "BTCUSDT", side: str = "BUY", quantidade: float = 0.001):
     ordem = criar_ordem(symbol, side, "MARKET", quantidade)
     notificar_telegram(f"🚨 Ordem enviada: {ordem}")
