@@ -8,6 +8,7 @@ import sqlite3
 from binance.client import Client
 import threading
 import time
+import sqlite3
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
