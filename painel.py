@@ -21,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-Bload_dotenv()
+load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
