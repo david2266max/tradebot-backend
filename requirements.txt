@@ -1,7 +1,8 @@
 fastapi
-uvicorn
+uvicorn[standard]
 requests
 pydantic
 python-binance
 jinja2
-python-binance
+python-dotenv
+
