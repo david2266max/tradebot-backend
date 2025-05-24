@@ -104,13 +104,19 @@ class OrdemInput(BaseModel):
 
 # ✅ ALTERADA: rota para receber JSON com Pydantic
 @app.post("/binance/ordem")
-def ordem_binance(ordem: OrdemInput):
+def ordem_binance(ordem: OrdemInput):    
     resultado = criar_ordem(
         symbol=ordem.symbol,
         side=ordem.side,
         tipo="MARKET",
         quantidade=ordem.quantidade
     )
+    try:
+        ordem = criar_ordem(symbol, side, "MARKET", quantidade)
+        notificar_telegram(f"🚨 Ordem enviada: {ordem}")
+        return ordem
+    except Exception as e:
+        return {"erro": str(e)}
     notificar_telegram(f"🚨 Ordem enviada: {resultado}")
     return resultado
 
