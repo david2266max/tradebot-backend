@@ -2,45 +2,123 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel TradeBot</title>
     <style>
-        body { font-family: Arial; background: #f0f0f0; padding: 20px; }
-        h1 { color: #333; }
-        .status, .operacoes { background: #fff; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-        .filtro { margin-bottom: 10px; }
-        input { margin-right: 5px; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1f1c2c, #928dab);
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            padding: 20px;
+            text-align: center;
+            background: rgba(0,0,0,0.5);
+        }
+        h1 {
+            margin: 0;
+        }
+        .container {
+            padding: 20px;
+            max-width: 900px;
+            margin: auto;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .status {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .status div {
+            margin: 10px;
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            background: rgba(255,255,255,0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        th {
+            background: rgba(0,0,0,0.4);
+        }
+        @media (max-width: 600px) {
+            .status {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>Painel Ativo com Telegram</h1>
 
+<header>
+    <h1>TradeBot - Painel de Controle</h1>
+</header>
+
+<div class="container">
     <div class="status">
-        <h2>Status</h2>
-        <p>Ativo: {{ 'Sim' if ativo else 'Não' }}</p>
-        <p>Modo: {{ modo }}</p>
-        <p>Moedas: {{ moedas }}</p>
-        <p>Saldo: {{ saldo }}</p>
-    </div>
-
-    <div class="operacoes">
-        <h2>Operações</h2>
-
-        <div class="filtro">
-            <form action="/operacoes/filtro" method="get">
-                <label>Moeda:</label>
-                <input type="text" name="symbol">
-                <label>Ação:</label>
-                <input type="text" name="acao">
-                <button type="submit">Filtrar</button>
-            </form>
+        <div>
+            <strong>Status:</strong> 
+            {% if ativo %}
+                <span style="color: #0f0;">Ativo</span>
+            {% else %}
+                <span style="color: #f00;">Parado</span>
+            {% endif %}
         </div>
-
-        <ul>
-            {% for op in operacoes %}
-                <li>{{ op.data }} - {{ op.symbol }} - {{ op.acao }} - Preço: {{ op.preco }}</li>
-            {% endfor %}
-        </ul>
+        <div>
+            <strong>Modo:</strong> {{ modo }}
+        </div>
+        <div>
+            <strong>Saldo:</strong> ${{ saldo }}
+        </div>
+        <div>
+            <strong>Moedas Monitoradas:</strong> 
+            <ul>
+                {% for moeda in moedas %}
+                    <li>{{ moeda }}</li>
+                {% endfor %}
+            </ul>
+        </div>
     </div>
+
+    <h2>Operações Recentes</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Moeda</th>
+                <th>Preço</th>
+                <th>Data</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for op in operacoes %}
+            <tr>
+                <td>{{ op.symbol }}</td>
+                <td>${{ op.preco }}</td>
+                <td>{{ op.data }}</td>
+                <td>{{ op.acao }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4">Nenhuma operação registrada.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
 </body>
 </html>
