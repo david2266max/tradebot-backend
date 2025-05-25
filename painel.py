@@ -5,10 +5,14 @@ from fastapi.responses import HTMLResponse
 import requests
 import threading
 import time
+import os
 from binance.client import Client
+from binance.exceptions import BinanceAPIException
+import logging
 from dotenv import load_dotenv
 
-import os
+# ✅ Carregar variáveis do .env
+load_dotenv()
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -21,12 +25,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-load_dotenv()
-
+# ✅ Configurações
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
+
 API_KEY = os.getenv("BINANCE_API_KEY")
 API_SECRET = os.getenv("BINANCE_API_SECRET")
+
 binance_client = Client(API_KEY, API_SECRET)
 
 estado_bot = {
@@ -37,61 +42,77 @@ estado_bot = {
     "operacoes": []
 }
 
+# ✅ Configurar logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 def notificar_telegram(msg: str):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = {"chat_id": CHAT_ID, "text": msg}
-    try:
-        requests.post(url, data=data, timeout=5)
-    except Exception as e:
-        print(f"Erro ao notificar Telegram: {e}")
+    if BOT_TOKEN and CHAT_ID:
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        data = {"chat_id": CHAT_ID, "text": msg}
+        try:
+            response = requests.post(url, data=data, timeout=5)
+            logging.info(f"Notificação enviada: {msg} | Status: {response.status_code}")
+        except Exception as e:
+            logging.error(f"Erro ao enviar notificação Telegram: {e}")
 
+def retry_binance(func):
+    """ Decorator para retry automático nas funções da Binance """
+    def wrapper(*args, **kwargs):
+        for attempt in range(3):
+            try:
+                result = func(*args, **kwargs)
+                return result
+            except BinanceAPIException as e:
+                logging.error(f"Erro Binance: {e}")
+                notificar_telegram(f"⚠️ Erro Binance: {e}")
+                time.sleep(2)
+            except Exception as e:
+                logging.error(f"Erro inesperado: {e}")
+                notificar_telegram(f"⚠️ Erro inesperado: {e}")
+                time.sleep(2)
+        return {"error": "Falha após múltiplas tentativas"}
+    return wrapper
+
+@retry_binance
 def consultar_saldo():
-    try:
-        info = binance_client.get_account()
-        saldos = info['balances']
-        ativos = [s for s in saldos if float(s['free']) > 0]
-        return ativos
-    except Exception as e:
-        return {"erro": str(e)}
+    info = binance_client.get_account()
+    saldos = info['balances']
+    ativos = [s for s in saldos if float(s['free']) > 0]
+    return ativos
 
+@retry_binance
 def consultar_preco(symbol="BTCUSDT"):
-    try:
-        ticker = binance_client.get_symbol_ticker(symbol=symbol)
-        return ticker
-    except Exception as e:
-        return {"erro": str(e)}
+    ticker = binance_client.get_symbol_ticker(symbol=symbol)
+    return ticker
 
+@retry_binance
 def criar_ordem(symbol="BTCUSDT", side="BUY", tipo="MARKET", quantidade=0.001):
-    try:
-        ordem = binance_client.create_order(
-            symbol=symbol,
-            side=side,
-            type=tipo,
-            quantity=quantidade
-        )
-        return ordem
-    except Exception as e:
-        return {"erro": str(e)}
+    ordem = binance_client.create_order(
+        symbol=symbol,
+        side=side,
+        type=tipo,
+        quantity=quantidade
+    )
+    return ordem
 
 def monitorar_automaticamente(symbol="BTCUSDT", intervalo=60, preco_alvo_compra=50000, preco_alvo_venda=60000):
     def loop():
         while True:
-            preco_info = consultar_preco(symbol)
-            if "erro" in preco_info:
-                print(f"Erro ao consultar preço: {preco_info['erro']}")
-                time.sleep(intervalo)
-                continue
+            preco_data = consultar_preco(symbol)
+            if isinstance(preco_data, dict) and "price" in preco_data:
+                preco = float(preco_data["price"])
+                logging.info(f"Preço atual de {symbol}: {preco}")
 
-            preco = float(preco_info["price"])
-            print(f"Preço atual de {symbol}: {preco}")
+                if preco <= preco_alvo_compra:
+                    criar_ordem(symbol, "BUY", "MARKET", 0.001)
+                    notificar_telegram(f"✅ Ordem automática de COMPRA enviada para {symbol} a {preco}")
 
-            if preco <= preco_alvo_compra:
-                resultado = criar_ordem(symbol, "BUY", "MARKET", 0.001)
-                notificar_telegram(f"✅ Ordem automática de COMPRA enviada para {symbol} a {preco}: {resultado}")
+                elif preco >= preco_alvo_venda:
+                    criar_ordem(symbol, "SELL", "MARKET", 0.001)
+                    notificar_telegram(f"✅ Ordem automática de VENDA enviada para {symbol} a {preco}")
 
-            elif preco >= preco_alvo_venda:
-                resultado = criar_ordem(symbol, "SELL", "MARKET", 0.001)
-                notificar_telegram(f"✅ Ordem automática de VENDA enviada para {symbol} a {preco}: {resultado}")
+            else:
+                logging.warning(f"Falha ao consultar preço de {symbol}")
 
             time.sleep(intervalo)
 
@@ -112,9 +133,9 @@ def preco_binance(symbol: str = "BTCUSDT"):
 
 @app.post("/binance/ordem")
 def ordem_binance(symbol: str = "BTCUSDT", side: str = "BUY", quantidade: float = 0.001):
-    resultado = criar_ordem(symbol, side, "MARKET", quantidade)
-    notificar_telegram(f"🚨 Ordem enviada: {resultado}")
-    return resultado
+    ordem = criar_ordem(symbol, side, "MARKET", quantidade)
+    notificar_telegram(f"🚨 Ordem enviada: {ordem}")
+    return ordem
 
 @app.get("/status")
 def get_status():
